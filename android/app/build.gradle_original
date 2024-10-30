@@ -86,18 +86,6 @@ android {
         versionName "1.0"
     }
     signingConfigs {
-        // ### SCRIPTED PATCH
-        release {
-            Properties keyProperties = new Properties()
-            def keystorePropertiesFile = rootProject.file('key.properties')
-            if (keystorePropertiesFile.exists()) {
-                keyProperties.load(keystorePropertiesFile.newDataInputStream())
-                keyAlias keyProperties.getProperty('keyAlias')
-                keyPassword keyProperties.getProperty('keyPassword')
-                storeFile keyProperties['storeFile'] ? file(keyProperties['storeFile']) : null
-                storePassword keyProperties.getProperty('storePassword')
-            }
-        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -110,8 +98,9 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // ### SCRIPTED PATCH
-            signingConfig signingConfigs.release
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
+            signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
