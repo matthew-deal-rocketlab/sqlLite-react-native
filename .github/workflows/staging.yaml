@@ -1,0 +1,256 @@
+name: Staging Workflow
+on:
+  push:
+    branches:
+      - staging
+
+  # Allows you to run this workflow manually from the Actions tab.
+  workflow_dispatch:
+
+# Common environment variables
+env:
+  CI: true
+  SAVE_ARTIFACT: false
+  SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+  SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+  GOOGLE_UPLOAD_JSON_KEY_B64: ${{ secrets.GOOGLE_UPLOAD_JSON_KEY_B64 }}
+  # For monorepo support.  Set as . if not using a monorepo
+  PROJECT_PATH: .
+  # change cache version to force updating cache
+  CACHE_VERSION: 2023-01-30
+  # React Native specific variables
+  # ANDROID_OUTPUT_PATH needs fixed name
+  ANDROID_OUTPUT_PATH: android/app/build/outputs/apk/release/app-release.apk
+  # IOS_OUTPUT_PATH can have wildcard expressions
+  IOS_OUTPUT_PATH: build/mobiletrainer.ipa
+
+jobs:
+  # This job can be disabled after the first build succeeds to save about 10 seconds.
+  # Dont forget to also comment out the needs line in JOB-code-validation
+  JOB-check-build-requirements:
+    name: Check build requirements
+    runs-on: [self-hosted, office, Linux]
+    # runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SECRETS_PASSWORD: ${{ secrets.SECRETS_PASSWORD }}
+      IOS_CERT_P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
+      IOS_UPLOAD_USER: ${{ secrets.IOS_UPLOAD_USER }}
+      IOS_UPLOAD_PASSWORD: ${{ secrets.IOS_UPLOAD_PASSWORD }}
+      ANDROID_UPLOAD_KEY_BASE64: ${{ secrets.ANDROID_UPLOAD_KEY_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_UPLOAD_JSON_BASE64: ${{ secrets.ANDROID_UPLOAD_JSON_BASE64 }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: 'Checking build requirements'
+        run: ./run ci-prebuild-check
+
+  JOB-code-validation:
+    name: Check code
+    needs: JOB-check-build-requirements
+    # If you have the choice, use this to make use of our faster local infra
+    runs-on: [self-hosted, office, Linux]
+    # runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
+      # Cache for node_modules
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.PROJECT_PATH }}/node_modules
+          key: reactnative-${{ runner.os }}-${{ github.repository }}-${{ env.CACHE_VERSION }}
+
+      - name: Install node modules
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-install
+
+      - name: Check code format
+        run: |
+          cd $PROJECT_PATH
+          ./run format
+
+      - name: Check code syntax and logic is correct
+        run: |
+          cd $PROJECT_PATH
+          ./run lint
+
+      - name: Check code passes unit tests
+        run: |
+          cd $PROJECT_PATH
+          ./run test
+
+      - name: send message
+        run: |
+          cd $PROJECT_PATH
+          ./run slack-message ":rocket: new template_reactnative staging build in progress"
+
+  JOB-increment-app-version:
+    name: Increment app version
+    needs: JOB-code-validation
+    runs-on: [self-hosted, office, Linux]
+    # runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Increment build number and commit back to repository
+        run: |
+          cd $PROJECT_PATH
+          ./run bump
+
+  JOB-build-android-to-slack:
+    # if: ${{ false }}  # uncomment to disable
+    name: Build Android to slack
+    needs: JOB-increment-app-version
+    runs-on: [self-hosted, office, Linux]
+    # runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SECRETS_PASSWORD: ${{ secrets.SECRETS_PASSWORD }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_UPLOAD_KEY_BASE64: ${{ secrets.ANDROID_UPLOAD_KEY_BASE64 }}
+    steps:
+      - uses: actions/checkout@v3
+      # Cache for node_modules
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.PROJECT_PATH }}/node_modules
+          key: reactnative-${{ runner.os }}-${{ github.repository }}-${{ env.CACHE_VERSION }}
+
+      # bug reference: https://github.com/actions/checkout/issues/439
+      - name: Refresh branch from version update
+        run: |
+          git pull
+
+      - name: Load cache files
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-cache-load
+
+      - name: Install node modules
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-install
+
+      - name: Get Android code signing file
+        run: |
+          cd $PROJECT_PATH
+          ./appsign android-key-add
+          ls -alh android-key.jks
+
+      - name: Build Android APK file
+        run: |
+          cd $PROJECT_PATH
+          ./run build-apk
+          ./appsign android-key-remove
+
+      - name: Upload to Google Drive
+        run: |
+          cd $PROJECT_PATH
+          export SEM_VERSION=$(./run android-version $ANDROID_OUTPUT_PATH all)
+          echo "App version is: $SEM_VERSION"
+          cp "$ANDROID_OUTPUT_PATH" "app-staging-${SEM_VERSION}.apk"
+          ./run upload-gdrive "app-staging-${SEM_VERSION}.apk" "Android Staging build ${SEM_VERSION}"
+
+      - name: Send slack message with last upload status
+        run: |
+          cd $PROJECT_PATH
+          ./run slack-last-upload
+
+      - name: Save or update cache files
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-cache-save
+
+      - name: Save android artifacts
+        if: ${{ env.SAVE_ARTIFACT  == 'true' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-result
+          path: |
+            ${{ env.PROJECT_PATH }}/${{ env.ANDROID_OUTPUT_PATH }}
+
+  JOB-build-ios-to-slack:
+    # if: ${{ false }}  # uncomment to disable
+    name: Build IOS to slack
+    needs: JOB-increment-app-version
+    runs-on: [macOS, self-hosted, office]
+    # runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      SECRETS_PASSWORD: ${{ secrets.SECRETS_PASSWORD }}
+      IOS_CERT_P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
+      IOS_UPLOAD_USER: ${{ secrets.IOS_UPLOAD_USER }}
+      IOS_UPLOAD_PASSWORD: ${{ secrets.IOS_UPLOAD_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v3
+      # Cache for node_modules
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.PROJECT_PATH }}/node_modules
+          key: reactnative-${{ runner.os }}-${{ github.repository }}-${{ env.CACHE_VERSION }}
+
+      # bug reference: https://github.com/actions/checkout/issues/439
+      - name: Refresh branch from version update
+        run: |
+          git pull
+
+      - name: Load cache files
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-cache-load
+
+      - name: Install node modules
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-install
+          ./run ci-install-ios-pods
+
+      - name: Get IOS code signing files
+        run: |
+          cd $PROJECT_PATH
+          ./appsign ios-key-add
+
+      - name: Build adhoc IPA file
+        run: |
+          cd $PROJECT_PATH
+          ./run build-ios adhoc
+
+      - name: Remove IOS code signing files
+        run: |
+          cd $PROJECT_PATH
+          ./appsign ios-key-remove
+
+      - name: Upload to Google Drive
+        run: |
+          cd $PROJECT_PATH
+          IPA_FILEPATH=$(ls $IOS_OUTPUT_PATH)
+          export SEM_VERSION=$(./run ios-version $IPA_FILEPATH all)
+          echo "App version is: $SEM_VERSION"
+          cp "$IPA_FILEPATH" "app-staging-${SEM_VERSION}.ipa"
+          ./run upload-gdrive "app-staging-${SEM_VERSION}.ipa" "IOS Staging build ${SEM_VERSION}"
+
+      - name: Send slack message with last upload status
+        run: |
+          cd $PROJECT_PATH
+          ./run slack-last-upload
+
+      - name: Save or update cache files
+        run: |
+          cd $PROJECT_PATH
+          ./run ci-cache-save
+
+      - name: Copy for saving to artifact
+        run: |
+          cd $PROJECT_PATH
+          cp $IOS_OUTPUT_PATH build/ios-result.ipa
+
+      - name: Save IOS result
+        if: ${{ env.SAVE_ARTIFACT  == 'true' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-result
+          path: |
+            ${{ env.PROJECT_PATH }}/build/ios-result.ipa
