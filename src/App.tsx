@@ -8,6 +8,19 @@ import {lightTheme, darkTheme} from './theme';
 import {SplashPage} from './pages/splash';
 import {useAppConfigModel, AppConfigContextProvider} from './models/app_config';
 import {UserContextProvider} from './models/user';
+import SQLite, {SQLiteDatabase} from 'react-native-sqlite-storage';
+import {initDatabase} from './services/database';
+
+SQLite.enablePromise(true);
+export let db: SQLiteDatabase;
+
+export const initDB = async () => {
+  db = await SQLite.openDatabase({
+    name: 'blog.db',
+    location: 'default',
+  });
+  return db;
+};
 
 const InnerApp = () => {
   const {isDarkmode} = useAppConfigModel();
@@ -28,8 +41,9 @@ const App = () => {
 
   useEffect(() => {
     setIsReady(false);
-    setTimeout(() => {
-      // Do your startup stuff here, then setIsReady to true when you want to stop showing your splashscreen
+    setTimeout(async () => {
+      await initDB();
+      await initDatabase();
       setIsReady(true);
     }, 0);
   }, []);

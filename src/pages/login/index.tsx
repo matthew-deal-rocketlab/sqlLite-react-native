@@ -92,12 +92,12 @@ export const LoginPage = ({navigation}: {navigation: LoginNavigationProp}) => {
 
   const onPressLogin = async () => {
     setLoginError('');
-    if (!isFormValid(form)) return false;
+    // if (!isFormValid(form)) return false;
 
     setBusy(true);
 
-    const loginSuccess = await userActions.signIn(form.email, form.pass, loginErrorHandler);
-    if (!loginSuccess) return;
+    // const loginSuccess = await userActions.signIn(form.email, form.pass, loginErrorHandler);
+    // if (!loginSuccess) return;
 
     await delay(0); // for debugging
     setBusy(false);
@@ -105,7 +105,7 @@ export const LoginPage = ({navigation}: {navigation: LoginNavigationProp}) => {
     // clear inputs after successful login
     setForm(initialFormField);
 
-    return navigation.reset({index: 0, routes: [{name: Routes.Settings}]});
+    return navigation.reset({index: 0, routes: [{name: Routes.Blog}]});
   };
 
   return (

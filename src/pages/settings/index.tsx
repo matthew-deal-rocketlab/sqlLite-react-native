@@ -8,7 +8,7 @@ import {Button} from '../../components/button';
 // import {StorageKeys} from '../../constants';
 // import {readString} from '../../utils/storage';
 import {HeaderFooterLayout} from '../../components/layouts/header_footer_layout';
-import {ButtonWrapper, ColumnLeft, ColumnRight, ContentWrapper, Label, Row, SectionLabel, Spacer} from './styles';
+import {ButtonWrapper, ColumnLeft, ColumnRight, ContentWrapper, Label, Row, SectionLabel, Spacer} from '../blog/styles';
 import {useAppConfigModel} from '../../models/app_config';
 import {useUserModel} from '../../models/user';
 import {Picker} from '../../components/picker';

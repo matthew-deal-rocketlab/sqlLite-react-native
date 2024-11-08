@@ -6,4 +6,5 @@ export type RootStackParamList = {
   [Routes.Intro]: undefined;
   [Routes.Settings]: undefined;
   [Routes.Login]: undefined;
+  [Routes.Blog]: undefined;
 };

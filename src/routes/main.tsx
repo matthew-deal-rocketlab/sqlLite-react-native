@@ -2,7 +2,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import React from 'react';
 
 import {createStackNavigator} from '@react-navigation/stack';
-import {SettingsPage, IntroPage, LoginPage} from '../pages';
+import {SettingsPage, IntroPage, LoginPage, BlogPage} from '../pages';
 
 import {RootStackParamList} from './types';
 import {Routes} from './routes';
@@ -18,6 +18,7 @@ const MainNavigation = () => {
         <RootStack.Screen name={Routes.Intro as never} component={IntroPage} />
         <RootStack.Screen name={Routes.Settings} component={SettingsPage} />
         <RootStack.Screen name={Routes.Login} component={LoginPage} />
+        <RootStack.Screen name={Routes.Blog} component={BlogPage} />
       </RootStack.Navigator>
     </NavigationContainer>
   );
