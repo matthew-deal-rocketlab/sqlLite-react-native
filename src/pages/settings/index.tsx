@@ -2,13 +2,13 @@
 
 import React from 'react';
 import {Switch} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+// import {useNavigation} from '@react-navigation/native';
 
-import {Button} from '../../components/button';
+// import {Button} from '../../components/button';
 // import {StorageKeys} from '../../constants';
 // import {readString} from '../../utils/storage';
 import {HeaderFooterLayout} from '../../components/layouts/header_footer_layout';
-import {ButtonWrapper, ColumnLeft, ColumnRight, ContentWrapper, Label, Row, SectionLabel, Spacer} from '../blog/styles';
+import {ColumnLeft, ColumnRight, ContentWrapper, Label, Row, SectionLabel, Spacer} from './styles';
 import {useAppConfigModel} from '../../models/app_config';
 import {useUserModel} from '../../models/user';
 import {Picker} from '../../components/picker';
@@ -28,9 +28,9 @@ const SettingOption = ({label, children}: {label: string; children: JSX.Element}
 
 // ### SettingsPage Component
 export const SettingsPage = () => {
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const userModel = useUserModel();
-  const userActions = userModel.actions();
+  // const userActions = userModel.actions();
   const {userDetails, isAuthenticated} = userModel;
   const {isDarkmode, setIsDarkmode, languageCode, setLanguageCode} = useAppConfigModel();
 
@@ -45,9 +45,9 @@ export const SettingsPage = () => {
 
   const onChangeDarkMode = (newValue: boolean) => setIsDarkmode(newValue);
 
-  const onPressLogout = async () => {
-    await userActions.signOut(navigation);
-  };
+  // const onPressLogout = async () => {
+  //   await userActions.signOut(navigation);
+  // };
 
   return (
     <HeaderFooterLayout justifyContent="center" alignItems="center" onPageEnter={onPageEnter}>
@@ -80,12 +80,12 @@ export const SettingsPage = () => {
         </SettingOption>
 
         <Spacer />
-
+        {/* 
         {isAuthenticated() && (
           <ButtonWrapper>
             <Button onPress={onPressLogout}>{'Logout'}</Button>
           </ButtonWrapper>
-        )}
+        )} */}
       </ContentWrapper>
     </HeaderFooterLayout>
   );

@@ -12,7 +12,7 @@ import * as Icons from '../../components/a_icons';
 import {Routes} from '../../routes/routes';
 import {RootStackParamList} from '../../routes/types';
 import {BusyIndicator} from '../../components/busy_indicator';
-import {isValidEmail} from '../../utils/validators';
+// import {isValidEmail} from '../../utils/validators';
 import {
   ButtonText,
   ButtonTextWrapper,
@@ -23,7 +23,7 @@ import {
   StyledHeaderFooterLayout,
 } from './styles';
 import {displayDate} from '../../utils/formatters';
-import {useUserModel} from '../../models/user';
+// import {useUserModel} from '../../models/user';
 import {delay} from '../../utils/helpers';
 
 const prt = console.log;
@@ -44,35 +44,35 @@ export const LoginPage = ({navigation}: {navigation: LoginNavigationProp}) => {
   const theme = useTheme();
   const [loginError, setLoginError] = useState('');
   const [isBusy, setBusy] = useState(false);
-  const userModel = useUserModel();
-  const userActions = userModel.actions();
+  // const userModel = useUserModel();
+  // const userActions = userModel.actions();
 
   const [form, setForm] = useState(initialFormField);
   const [formErrors, setFormErrors] = useState(initialFormErrors);
 
-  const isFormValid = (finalForm: typeof initialFormField) => {
-    let hasErrors = false;
+  // const isFormValid = (finalForm: typeof initialFormField) => {
+  //   let hasErrors = false;
 
-    const newErrors = {...initialFormErrors};
-    if (!isValidEmail(finalForm.email)) {
-      newErrors.email = 'Email is invalid';
-      hasErrors = true;
-    }
-    if (finalForm.pass.trim().length === 0) {
-      newErrors.pass = 'Password can not be blank';
-      hasErrors = true;
-    }
+  //   const newErrors = {...initialFormErrors};
+  //   if (!isValidEmail(finalForm.email)) {
+  //     newErrors.email = 'Email is invalid';
+  //     hasErrors = true;
+  //   }
+  //   if (finalForm.pass.trim().length === 0) {
+  //     newErrors.pass = 'Password can not be blank';
+  //     hasErrors = true;
+  //   }
 
-    if (!hasErrors) return true;
+  //   if (!hasErrors) return true;
 
-    setFormErrors({...newErrors});
-    return false;
-  };
+  //   setFormErrors({...newErrors});
+  //   return false;
+  // };
 
-  const loginErrorHandler = (message: string) => {
-    setBusy(false);
-    setLoginError(message);
-  };
+  // const loginErrorHandler = (message: string) => {
+  //   setBusy(false);
+  //   setLoginError(message);
+  // };
 
   const updateForm = (_assignment: string) => {
     setFormErrors(initialFormErrors);
